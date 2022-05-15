@@ -5,7 +5,7 @@ Egy olyan Arduino alapú projektet készítünk, ami képes páratartalmat, hőm
 
 ## 2. Projektfelelősök
 
-- Anka Bálint (#NK#)
+- Anka Bálint Kristóf (A49I6H)
 - Kardos Zsolt (O48WRX)
 - Kiss Dorina Hedvig (BSX8GS)
 
