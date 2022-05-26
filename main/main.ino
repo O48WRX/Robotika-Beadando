@@ -5,6 +5,14 @@
 #include <DallasTemperature.h>
 #include "Projektfgv.h"
 
+OneWire  ds(A0);              // a A0. kivezetéshez kell kapcsolni a chip data kivezetését 
+byte ds_data[9];              //kiolvasott adtok tárolására
+float homerseklet;            //ebbe a változóba kerül a kiolvasott hőmérséklet
+bool meres=true;              //azért, hogy ne kelljen delay()-t használni, az egyik loop() ciklusban utasítjuk a Dallas chip-et
+                              //hogy mérjen, míg a következőben kiolvassuk a mért értéket. Ez jelzi, amikor csak mérni kell
+long ido_tmp=millis();   
+
+
 #define DHTPIN 4
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
@@ -43,6 +51,36 @@ void setup()
   lcd.backlight();
   
 }
+
+float Homerseklet()
+{
+  if(millis()>ido_tmp+2000) { //két másodperc után foglalkozunk a hőmérséklet mérés indítással, vagy az eredmény kiolvasással
+    if (meres) {              //ha meres=1 akkor arra utasítjuk majd a chip-et, hogy végezzen egy mérést, ha 0 akkor kiolvasunk (else ág)
+      if (ds.reset()==1) {    //itt 1-el jelez, ha a reset jelre válaszol egy DS18b20, tehát van a vonalon chip. Ha nincs a vonalon DS18b20, akkor ez 0.
+         ds.skip();           //ezzel azt mondjuk a chip-nek, hogy egyedül van a vonalon, nem adunk meg eszköz címet, mindenképpen csinálja amira utasítást kap
+         ds.write(0x44,1);    //elinditunk egy mérést a chip-ben
+         meres=false;         //ezzel jelezzük, hogy elindítottunk egy mérést, 750msec múlva ki lehet olvasni a mért hőmérsékletet
+       }
+       else {Serial.println("Nincs DS18b20 a vonalon!");}  //meres változót nem állítjuk false-ra, így várunk amíg lesz chip a vonalon
+    }
+    else {                    //mivel volt eszköz a vonalon és az előző ciklusban mért is egyet, ki fogjuk olvasni az eredményt
+      ds.reset();             //érdekes, de itt már mindenképpen 1 volt a ds.reset() válasza, ha nem volt eszköz a vonalon, akkor is,
+                              //így itt már nem is vizsgálom. Viszont mivel itt nem vizsgálom, egy fals mérés lehetséges. 
+                              //Ennek eredménye 0.00fok, amiről nem lehet megállapítani, hogy nem valós mért érték.
+      ds.skip();              //ezzel azt mondjuk a chip-nek, hogy egyedül van a vonalon, nem adunk meg eszköz címet, mindenképpen csinálja amira utasítást kap
+      ds.write(0xBE);         // Chip memóriájának olvasása következik
+      for ( byte i=0;i<9;i++) {ds_data[i]=ds.read();}    // 9 bytot olvasunk ki
+      //ds_data[3]=0;         //ez egy mesterséges crc hiba előállítás, hogy meglássuk működik-e a crc vizsgálat. Helyes működéshez ki kell kommentezni ezt a sort
+      if ( OneWire::crc8(ds_data,8)!=ds_data[8]) {Serial.println("CRC hiba a kiolvasott adatokban!");}   
+      else {
+        homerseklet=(float) (((ds_data[1]<<8)|ds_data[0])/16.0);          //mert értek visszaadása 
+        Serial.print("Hőmérséklet:");Serial.println(homerseklet); 
+        meres=true;                                                       //ezzel jelezzük, hogy következő ciklusban mérést kell indítani
+      }
+    }
+    ido_tmp=millis();
+    return homerseklet;
+}}
 
 float averageTemp(float temp1, float temp2) {
   // Visszaadja a két hőmérséklet átlagát.
@@ -144,7 +182,7 @@ void manageRGBLED(float currentTemp, int redPin, int bluePin, int greenPin) {
 }
 void loop()
 {
-  float avgTemp = (GetDallasTemp()+ dht.readTemperature()/2);
+  float avgTemp = (Homerseklet()+ dht.readTemperature())/2;
   
   if(isButtonHeld(7))
   {
