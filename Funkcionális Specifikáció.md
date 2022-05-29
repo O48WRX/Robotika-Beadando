@@ -17,4 +17,5 @@ Egy olyan Arduino alapú projektet készítünk, ami képes páratartalmat, hőm
 - Hall szenzor
 
 ## 4. Állapot átmenet gráf
-![fb1d774b8365ca4c7d07bc966cf274b1](https://user-images.githubusercontent.com/82752886/167309402-82b78559-a895-4070-8e6e-dd2da058c38a.png)
+![state_transition drawio](https://user-images.githubusercontent.com/82752886/170859778-bd911abb-160c-4e42-9dc5-5c82683d88a6.png)
+
